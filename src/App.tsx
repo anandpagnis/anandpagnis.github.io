@@ -146,7 +146,7 @@ const App = () => {
                                     <a href="#projects" className="">Projects</a>
                                     <a href="https://www.linkedin.com/in/anand-pagnis-96927a24a"
                                        className="">Linkedin</a>
-                                    <a href="https://drive.google.com/file/d/1BaEaDnYsLbnLwia2VAeZBN9cACkcj8sI/view?usp=drive_link" className="">Resume</a>
+                                    <a href="https://docs.google.com/document/d/1cQ7TXyehbwAqCqQ_8s5QWlUTDT1aaQpPdCF5LUee03w/edit?usp=sharing" className="">Resume</a>
                                     <div className="theme-switch-wrapper">
                                         <Sun className="theme-icon h-4 w-4"/>
                                         <label className="theme-switch">
