@@ -1,29 +1,18 @@
-import { useState, useEffect, useRef } from 'react';
-import type { ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
+import { flushSync } from 'react-dom';
 import {
-    Sun, Moon, Github, Linkedin, FileText, ArrowUpRight,
-    Menu, X, MapPin, Mail, Image as ImageIcon, Video,
+    Sun, Moon, Github, Linkedin, FileText, Mail,
+    ArrowUpRight, ArrowDown, ChevronDown, Menu, X, Image as ImageIcon, Video,
 } from 'lucide-react';
 import './App.css';
+import adarc from './assets/adarc.png';
+import projdemo from './assets/projdemo-web.mp4';
+import secdash from './assets/secdash.png';
+import softengvis from './assets/softengvisual.png';
+import portvis from './assets/portvis.svg';
 
-/* ------------------------------------------------------------------ */
-/*  TECH ICONS                                                         */
-/*  (only the ones we actually map below are imported, to keep         */
-/*   TypeScript's no-unused-locals happy)                              */
-/* ------------------------------------------------------------------ */
-import pythonicon from './assets/python.svg';
-import typescripticon from './assets/typescript.svg';
-import htmlicon from './assets/html.svg';
-import cssicon from './assets/css.svg';
-import dockericon from './assets/docker.svg';
 
-const ICONS: Record<string, string> = {
-    Python: pythonicon,
-    TypeScript: typescripticon,
-    HTML: htmlicon,
-    CSS: cssicon,
-    Docker: dockericon,
-};
 
 /* ==================================================================
    ⬇  HOW TO ADD REAL MEDIA  ⬇
@@ -34,7 +23,7 @@ const ICONS: Record<string, string> = {
       with:
           media: { kind: 'image', src: adarc }
    The <Media> component renders the real asset when `src` is set,
-   and the dashed placeholder when it isn't.
+   and the amber CRT placeholder when it isn't.
    ================================================================== */
 
 /* ------------------------------------------------------------------ */
@@ -53,10 +42,9 @@ type Project = {
     title: string;
     role?: string;
     period: string;
-    location?: string;
-    tag?: string;
+    tag: string;
     media: Media;
-    points: string[];
+    summary: string;
     tech: string[];
     repo: string;
 };
@@ -70,6 +58,7 @@ const LINKS = {
     linkedin: 'https://www.linkedin.com/in/anand-pagnis-96927a24a',
     resume: `${import.meta.env.BASE_URL}AnandPagnisResume.pdf`,
     email: 'anandpagnis101@gmail.com',
+    adarc : 'https://adarc.netlify.app',
 };
 
 const skillGroups: { label: string; items: string[] }[] = [
@@ -79,6 +68,10 @@ const skillGroups: { label: string; items: string[] }[] = [
     { label: 'Languages', items: ['Python', 'TypeScript', 'C/C++', 'HTML', 'SQL'] },
 ];
 
+/* languages shown by default; the rest live behind the "All skills" toggle */
+const languages = skillGroups.find((g) => g.label === 'Languages')?.items ?? [];
+const otherSkills = skillGroups.filter((g) => g.label !== 'Languages');
+
 const experience: Entry[] = [
     {
         title: 'Software Engineer — Frontend Developer',
@@ -86,20 +79,8 @@ const experience: Entry[] = [
         period: 'Sept 2025 – Nov 2025',
         location: 'Remote',
         points: [
-            'Developed and maintained responsive user interfaces for Buffeat\u2019s core platform using React and TypeScript, and standardized branding policies.',
-            'Implemented reusable component libraries and state-management solutions, reducing development time for new features by 20%.',
-            'Participated in Agile sprints — sprint planning, daily stand-ups, and code reviews — delivering features on time with high code quality.',
-        ],
-    },
-    {
-        title: 'Project Lead & System Administrator',
-        org: 'Fundesteam',
-        period: 'Aug 2024 – Oct 2024',
-        location: 'Panama City, Panama',
-        points: [
-            'Partnered with the Ministry of Education to develop a low-power, scalable, offline educational server for rural Panama.',
-            'Achieved 85% faster video load times through an iterative development process using Docker.',
-            'Automated course uploads with Bash scripts and optimized OS performance, reducing CPU temperatures by 13%.',
+            'Built responsive React + TypeScript interfaces for Buffeat’s core platform and reusable component libraries, cutting feature development time by 20%.',
+            'Shipped features through Agile sprints — planning, stand-ups, and code reviews.',
         ],
     },
 ];
@@ -111,8 +92,7 @@ const leadership: Entry[] = [
         period: 'Jan 2025 – Mar 2026',
         location: 'Worcester, MA',
         points: [
-            'Led discussions on financial markets, investment strategies, and risk analysis while organizing campus-wide events for a 250+ member club and managing a $10,000 budget.',
-            'Launched a six-figure student-led investment fund and served as a voting member on its committee.',
+            'Led a 250+ member club on a $10,000 budget and launched a six-figure student-led investment fund.',
         ],
     },
     {
@@ -129,69 +109,72 @@ const leadership: Entry[] = [
 const projects: Project[] = [
     {
         id: 1,
-        title: 'ADArC — Automated Design Tool for Arduino Circuits',
-        role: 'Principal Software Engineer',
-        period: 'Aug 2025 – May 2026',
-        location: 'Worcester, MA',
+        title: 'ADArC',
+        role: 'Principal Software Engineer · Aug 2025 – May 2026',
+        period: '2025–26',
         tag: 'Simulation · EDA',
-        media: { kind: 'video', label: 'ADArC simulator demo' },
-        points: [
-            'Expanded an Arduino circuit simulator by 25+ components using TypeScript, Blazor, AVR8js, and GraphSynth.',
-            'Implemented I2C, SPI, UART, RS485, and analog/digital sensor & actuator simulation with real-time SVG visualization.',
-            'Built Arduino code-generation support with dynamic pin mapping and custom library integration.',
-            'Developed event-driven synchronization between the UI, simulation controllers, and AVR microcontroller execution.',
-        ],
+        media: { kind: 'image', src: adarc, label: 'ADArC simulator' },
+        summary: 'Expanded an Arduino circuit simulator by 25+ components — adding I²C, SPI, UART & RS485 sensor simulation with real-time SVG visualization and Arduino code generation.',
         tech: ['TypeScript', 'Blazor', 'AVR8js', 'GraphSynth', 'SVG'],
-        repo: LINKS.github,
+        repo: LINKS.adarc,
     },
     {
         id: 2,
+        title: 'Offline Education Server',
+        role: 'Project Lead & System Administrator · Fundesteam × Ministry of Education',
+        period: '2024',
+        tag: 'Systems · Infra',
+        media: { kind: 'video', src: projdemo, label: 'Offline education server demo' },
+        summary: 'Built a low-power offline learning server for rural Panama with the Ministry of Education — 85% faster video loads through Docker and Bash-automated course uploads.',
+        tech: ['Docker', 'Bash', 'Linux'],
+        repo: LINKS.github,
+    },
+    {
+        id: 3,
         title: 'SEC 10-K Research Terminal',
-        period: 'May 2026',
-        tag: 'Fintech · Full-Stack · RAG',
-        media: { kind: 'image', label: 'Research terminal screenshot' },
-        points: [
-            'Built a full-stack financial research platform with a Python/FastAPI backend and React/TypeScript frontend, with end-to-end type safety eliminating data mismatches across 15+ models from SEC EDGAR to the UI.',
-            'Implemented a hybrid RAG retrieval system combining BM25 keyword matching with nomic-embed-text dense vectors, reciprocal rank fusion, and lightweight reranking — reducing top-3 retrieval error rate by 40%.',
-            'Developed a heuristic SEC document parser extracting sections, financial statements, and XBRL metrics from raw 10-K HTML, producing structured, citation-trackable outputs with stable evidence IDs.',
-        ],
+        period: '2026',
+        tag: 'Fintech · RAG',
+        media: { kind: 'image', src: secdash ,label: 'Research terminal screenshot' },
+        summary: 'A full-stack SEC-filing research platform (FastAPI + React) with a hybrid BM25 + dense-vector RAG pipeline that cut top-3 retrieval error by 40%.',
         tech: ['Python', 'FastAPI', 'React', 'TypeScript', 'RAG', 'BM25'],
         repo: 'https://github.com/anandpagnis/sec-dashboard',
     },
     {
-        id: 3,
+        id: 4,
+        title: 'Hospital Navigation & Service App',
+        role: 'Project Manager & Frontend Developer · WPI × Brigham and Women’s Hospital',
+        period: '2024',
+        tag: 'Agile · Frontend',
+        media: { kind: 'image', src: softengvis, label: 'Hospital app screenshot' },
+        summary: 'Led a 9-member Agile team building a hospital navigation and service app, deployed on AWS EC2 with Docker, Prisma and PostgreSQL.',
+        tech: ['React', 'TypeScript', 'AWS EC2', 'Docker', 'Prisma', 'PostgreSQL'],
+        repo: LINKS.github,
+    },
+    {
+        id: 5,
         title: 'Algorithmic Trading Engine',
         period: '2024',
-        tag: 'Fintech · Quant · Automation',
-        media: { kind: 'image', label: 'Trading dashboard screenshot' },
-        points: [
-            'Built a Python trading engine that pulls market data via yfinance and generates buy/sell signals from a moving-average crossover strategy with configurable trade limits.',
-            'Automated end-to-end trade execution against the Investopedia simulator using PyAutoGUI and Tesseract OCR for on-screen action detection.',
-            'Developed an interactive Streamlit + Plotly dashboard for multi-ticker comparison across configurable intervals and time periods over the S&P 500 universe.',
-        ],
+        tag: 'Quant · Automation',
+        media: { kind: 'image', src: portvis , label: 'Trading dashboard screenshot' },
+        summary: 'A Python trading engine with a moving-average strategy and automated Investopedia execution, paired with a Streamlit + Plotly dashboard across the S&P 500.',
         tech: ['Python', 'yfinance', 'Streamlit', 'Plotly', 'pandas', 'NumPy'],
         repo: 'https://github.com/anandpagnis/Trading-Engine',
     },
-    {
-        id: 4,
-        title: 'Hospital Navigation & Service App',
-        role: 'Project Manager & Frontend Developer',
-        period: 'Jan 2024 – Apr 2024',
-        location: 'WPI · Brigham and Women\u2019s Hospital',
-        tag: 'Agile · Frontend',
-        media: { kind: 'image', label: 'Hospital app screenshot' },
-        points: [
-            'Led development of a hospital navigation and service-management app as Project Manager, coordinating a 9-member team using Agile methodologies and tools like Jira.',
-            'Deployed website infrastructure with AWS EC2, Docker, and Prisma ORM, backed by a PostgreSQL database.',
-        ],
-        tech: ['React', 'TypeScript', 'AWS EC2', 'Docker', 'Prisma ORM', 'PostgreSQL', 'Jira'],
-        repo: LINKS.github,
-    },
 ];
 
+const NAV = [
+    { label: 'Projects', href: '#work', id: 'work' },
+    { label: 'Experience', href: '#experience', id: 'experience' },
+    { label: 'Contact', href: '#contact', id: 'contact' },
+];
+
+const SECTION_IDS = NAV.map((n) => n.id);
+
 /* ------------------------------------------------------------------ */
-/*  SCROLL-REVEAL                                                      */
+/*  HOOKS                                                              */
 /* ------------------------------------------------------------------ */
+
+/* fade-up on scroll */
 const useReveal = () => {
     const ref = useRef<HTMLDivElement>(null);
     useEffect(() => {
@@ -204,7 +187,7 @@ const useReveal = () => {
                     obs.unobserve(entry.target);
                 }
             },
-            { threshold: 0.12 }
+            { threshold: 0.08 }
         );
         obs.observe(el);
         return () => obs.disconnect();
@@ -221,305 +204,414 @@ const Reveal = ({ children, delay = 0 }: { children: ReactNode; delay?: number }
     );
 };
 
+/* thin reading-progress line under the header */
+const useScrollProgress = () => {
+    const [progress, setProgress] = useState(0);
+    useEffect(() => {
+        const onScroll = () => {
+            const doc = document.documentElement;
+            const max = doc.scrollHeight - doc.clientHeight;
+            setProgress(max > 0 ? doc.scrollTop / max : 0);
+        };
+        onScroll();
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
+    return progress;
+};
+
+/* highlights the section currently in view */
+const useScrollSpy = (ids: readonly string[]) => {
+    const [active, setActive] = useState('');
+    useEffect(() => {
+        const obs = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) setActive(entry.target.id);
+                });
+            },
+            { rootMargin: '-30% 0px -60% 0px' }
+        );
+        ids.forEach((id) => {
+            const el = document.getElementById(id);
+            if (el) obs.observe(el);
+        });
+        return () => obs.disconnect();
+    }, [ids]);
+    return active;
+};
+
 /* ------------------------------------------------------------------ */
-/*  MEDIA (real asset or labeled placeholder)                          */
+/*  SMALL PIECES                                                       */
 /* ------------------------------------------------------------------ */
+
+/* word-by-word headline reveal */
+const WordReveal = ({ text, accentWords = [] }: { text: string; accentWords?: string[] }) => (
+    <>
+        {text.split(' ').map((word, i) => (
+            <span key={i}>
+                <span className="w-clip">
+                    <span
+                        className={`w${accentWords.includes(word) ? ' w-accent' : ''}`}
+                        style={{ animationDelay: `${160 + i * 50}ms` }}
+                    >
+                        {word}
+                    </span>
+                </span>
+                {' '}
+            </span>
+        ))}
+    </>
+);
+
+/* the 70s striped sun — pure CSS, sits behind the hero */
+// const RetroSun = () => (
+//     <div className="sun-wrap" aria-hidden="true">
+//         <div className="sun-glow" />
+//         <div className="sun" />
+//         <div className="horizon" />
+//     </div>
+// );
+
+/* real asset when `src` is set, amber placeholder when it isn't */
 const Media = ({ media, alt }: { media: Media; alt: string }) => {
     if (media.src) {
         return (
             <div className="media-frame">
                 {media.kind === 'video' ? (
-                    <video className="block w-full" src={media.src} controls loop autoPlay muted playsInline />
+                    <video src={media.src} controls loop autoPlay muted playsInline />
                 ) : (
-                    <img className="block w-full" src={media.src} alt={alt} />
+                    <img src={media.src} alt={alt} loading="lazy" decoding="async" />
                 )}
             </div>
         );
     }
     return (
-        <div className="media-frame media-placeholder">
-            <div className="media-placeholder-inner">
-                {media.kind === 'video' ? <Video className="h-8 w-8" /> : <ImageIcon className="h-8 w-8" />}
-                <span className="label">{media.label ?? alt}</span>
-                <span className="hint">Add {media.kind === 'video' ? 'a video' : 'an image'} here</span>
-            </div>
+        <div className="media-frame media-placeholder" role="img" aria-label={media.label ?? alt}>
+            {media.kind === 'video' ? <Video size={20} strokeWidth={1.5} /> : <ImageIcon size={20} strokeWidth={1.5} />}
+            <span className="media-label">{media.label ?? alt}</span>
         </div>
     );
 };
 
-/* ------------------------------------------------------------------ */
-/*  ENTRY CARD (experience / leadership)                               */
-/* ------------------------------------------------------------------ */
-const EntryCard = ({ entry }: { entry: Entry }) => (
-    <div className="card p-6 sm:p-8">
-        <div className="flex flex-col justify-between gap-1 sm:flex-row sm:items-baseline">
-            <h3 className="text-xl font-bold sm:text-2xl">{entry.title}</h3>
-            <span className="font-mono text-sm" style={{ color: 'var(--text-muted)' }}>{entry.period}</span>
-        </div>
-        <p className="mt-1 font-medium" style={{ color: 'var(--accent)' }}>
-            {entry.org}{entry.location ? ` · ${entry.location}` : ''}
-        </p>
-        <ul className="mt-5 flex flex-col gap-3">
-            {entry.points.map((p, i) => (
-                <li key={i} className="flex items-start gap-3 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                    <span className="bullet-dot" />
-                    <span>{p}</span>
-                </li>
-            ))}
-        </ul>
+const SectionHeader = ({ index, label }: { index: string; label: string }) => (
+    <div className="section-header">
+        <span className="section-index">{index}</span>
+        <h2 className="section-title">{label}</h2>
+        <span className="section-rule" aria-hidden="true" />
     </div>
 );
+
+const SubHeader = ({ label }: { label: string }) => (
+    <div className="sub-header">
+        <span className="sub-tick" aria-hidden="true" />
+        <h3>{label}</h3>
+    </div>
+);
+
+/* ledger row: mono meta on the left, content on the right */
+const EntryRow = ({ entry }: { entry: Entry }) => (
+    <div className="row">
+        <div className="row-meta">
+            <span>{entry.period}</span>
+            {entry.location && <span>{entry.location}</span>}
+        </div>
+        <div className="row-body">
+            <h4 className="row-title">{entry.title}</h4>
+            <p className="row-org">{entry.org}</p>
+            <ul className="points">
+                {entry.points.map((p, i) => (
+                    <li key={i}>{p}</li>
+                ))}
+            </ul>
+        </div>
+    </div>
+);
+
+/* editorial project block — alternates media side on desktop */
+const ProjectBlock = ({ project, index }: { project: Project; index: number }) => (
+    <article className={`proj${index % 2 === 1 ? ' flip' : ''}`}>
+        <div className="proj-info">
+            <div className="proj-meta">
+                <span className="proj-num" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+                <span className="proj-tag">{project.tag}</span>
+                <span className="proj-period">{project.period}</span>
+            </div>
+            <h3 className="proj-title">
+                <a href={project.repo} target="_blank" rel="noreferrer">
+                    {project.title}
+                    <ArrowUpRight className="proj-arrow" size={26} strokeWidth={1.75} aria-hidden="true" />
+                </a>
+            </h3>
+            {project.role && <p className="proj-role">{project.role}</p>}
+            <p className="proj-summary">{project.summary}</p>
+            <p className="tech-line">
+                {project.tech.map((t, i) => (
+                    <span key={t}>
+                        {t}
+                        {i < project.tech.length - 1 && <span className="tech-sep" aria-hidden="true"> ✦ </span>}
+                    </span>
+                ))}
+            </p>
+        </div>
+        <a
+            href={project.repo}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={`${project.title} on GitHub`}
+            className="proj-media"
+        >
+            <Media media={project.media} alt={project.title} />
+        </a>
+    </article>
+);
+
+/* mini striped-sun used as a footer divider ornament */
+const MiniSun = () => <span className="mini-sun" aria-hidden="true" />;
 
 /* ------------------------------------------------------------------ */
 /*  APP                                                                */
 /* ------------------------------------------------------------------ */
 const App = () => {
-    const [isDarkMode, setIsDarkMode] = useState(true);
-    const [menuOpen, setMenuOpen] = useState(false);
-
-    useEffect(() => {
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        if (typeof window === 'undefined') return true;
         const stored = localStorage.getItem('theme');
-        setIsDarkMode((stored ?? 'dark') === 'dark');
-    }, []);
+        if (stored) return stored === 'dark';
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    });
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [toolkitOpen, setToolkitOpen] = useState(false);
+    const progress = useScrollProgress();
+    const activeSection = useScrollSpy(SECTION_IDS);
+    const heroRef = useRef<HTMLElement>(null);
 
-    useEffect(() => {
-        document.body.classList.toggle('dark', isDarkMode);
-        document.body.classList.toggle('light', !isDarkMode);
+    /* layout effect so the class flip is captured by View Transitions */
+    useLayoutEffect(() => {
+        const root = document.documentElement;
+        root.classList.toggle('dark', isDarkMode);
+        root.classList.toggle('light', !isDarkMode);
         localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
     }, [isDarkMode]);
 
-    const toggleTheme = () => setIsDarkMode((v) => !v);
+    /* theme flip as a circular reveal from the toggle (graceful fallback) */
+    const toggleTheme = (e: MouseEvent<HTMLButtonElement>) => {
+        const next = !isDarkMode;
+        const doc = document as Document & {
+            startViewTransition?: (cb: () => void) => void;
+        };
+        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        if (doc.startViewTransition && !reduceMotion) {
+            document.documentElement.style.setProperty('--vt-x', `${e.clientX}px`);
+            document.documentElement.style.setProperty('--vt-y', `${e.clientY}px`);
+            doc.startViewTransition(() => {
+                flushSync(() => setIsDarkMode(next));
+            });
+        } else {
+            setIsDarkMode(next);
+        }
+    };
 
-    const navItems = [
-        { label: 'About', href: '#about' },
-        { label: 'Skills', href: '#skills' },
-        { label: 'Experience', href: '#experience' },
-        { label: 'Leadership', href: '#leadership' },
-        { label: 'Projects', href: '#projects' },
-        { label: 'Education', href: '#education' },
-    ];
+    /* warm cursor glow that follows the pointer through the hero */
+    const onHeroPointer = (e: MouseEvent<HTMLElement>) => {
+        const el = heroRef.current;
+        if (!el) return;
+        const rect = el.getBoundingClientRect();
+        el.style.setProperty('--mx', `${e.clientX - rect.left}px`);
+        el.style.setProperty('--my', `${e.clientY - rect.top}px`);
+    };
 
     return (
-        <div className="relative min-h-screen w-full overflow-x-hidden">
-            {/* animated background */}
-            <div className="bg-layer">
-                <div className="bg-grid" />
-                <div className="bg-orb one" />
-                <div className="bg-orb two" />
-            </div>
-
-            {/* ============ NAV ============ */}
-            <nav className="sticky top-0 z-50 backdrop-blur-md"
-                 style={{ background: 'color-mix(in srgb, var(--bg) 72%, transparent)', borderBottom: '1px solid var(--border)' }}>
-                <div className="mx-auto flex h-16 max-w-6xl items-center justify-between px-5 sm:px-8">
-                    <a href="#about" className="font-display text-lg font-bold tracking-tight">
-                        Anand<span style={{ color: 'var(--accent)' }}>.</span>Pagnis
+        <div className="page">
+            {/* ============ HEADER ============ */}
+            <header className="site-header">
+                <div className="header-inner">
+                    <a href="#top" className="wordmark">
+                        <span className="wm-sun" aria-hidden="true" />
+                        Anand&nbsp;Pagnis
                     </a>
 
-                    <div className="hidden items-center gap-6 md:flex">
-                        {navItems.map((n) => (
-                            <a key={n.href} href={n.href} className="nav-link">{n.label}</a>
+                    <nav className="nav-desktop" aria-label="Sections">
+                        {NAV.map((n) => (
+                            <a key={n.href} href={n.href} className={`nav-link${activeSection === n.id ? ' active' : ''}`}>
+                                {/*<span className="nav-index">{String(i + 1).padStart(2, '0')}</span>*/}
+                                {n.label}
+                            </a>
                         ))}
-                        <div className="theme-switch-wrapper">
-                            <Sun className="h-4 w-4" />
-                            <label className="theme-switch">
-                                <input type="checkbox" checked={isDarkMode} onChange={toggleTheme} aria-label="Toggle theme" />
-                                <span className="slider" />
-                            </label>
-                            <Moon className="h-4 w-4" />
-                        </div>
-                    </div>
+                    </nav>
 
-                    <div className="flex items-center gap-4 md:hidden">
-                        <label className="theme-switch">
-                            <input type="checkbox" checked={isDarkMode} onChange={toggleTheme} aria-label="Toggle theme" />
-                            <span className="slider" />
-                        </label>
-                        <button onClick={() => setMenuOpen((v) => !v)} aria-label="Menu" style={{ color: 'var(--text)' }}>
-                            {menuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+                    <div className="header-actions">
+                        <button
+                            className="icon-btn"
+                            onClick={toggleTheme}
+                            aria-label={isDarkMode ? 'Switch to light theme' : 'Switch to dark theme'}
+                        >
+                            {isDarkMode ? <Sun size={17} strokeWidth={1.75} /> : <Moon size={17} strokeWidth={1.75} />}
+                        </button>
+                        <button
+                            className="icon-btn nav-toggle"
+                            onClick={() => setMenuOpen((v) => !v)}
+                            aria-label="Menu"
+                            aria-expanded={menuOpen}
+                        >
+                            {menuOpen ? <X size={19} strokeWidth={1.75} /> : <Menu size={19} strokeWidth={1.75} />}
                         </button>
                     </div>
                 </div>
 
+                {/* reading progress */}
+                <div className="progress" aria-hidden="true">
+                    <div className="progress-bar" style={{ transform: `scaleX(${progress})` }} />
+                </div>
+
                 {menuOpen && (
-                    <div className="md:hidden" style={{ borderTop: '1px solid var(--border)', background: 'var(--bg-soft)' }}>
-                        <div className="flex flex-col px-5 py-3">
-                            {navItems.map((n) => (
-                                <a key={n.href} href={n.href} onClick={() => setMenuOpen(false)} className="nav-link py-3">{n.label}</a>
+                    <nav className="nav-mobile" aria-label="Sections">
+                        {NAV.map((n, i) => (
+                            <a key={n.href} href={n.href} onClick={() => setMenuOpen(false)} className="nav-link">
+                                <span className="nav-index">{String(i + 1).padStart(2, '0')}</span>
+                                {n.label}
+                            </a>
+                        ))}
+                    </nav>
+                )}
+            </header>
+
+            <main id="top">
+
+                {/* ============ HERO ============ */}
+                <section className="hero" ref={heroRef} onMouseMove={onHeroPointer}>
+                    {/*<RetroSun />*/}
+                    <div className="hero-veil" aria-hidden="true" />
+                    <div className="container hero-content">
+                        <p className="eyebrow">Software Engineer · Full-Stack &amp; Fintech</p>
+                        <h1 className="hero-title">
+                            <WordReveal
+                                text="I build impactful projects"
+                                accentWords={['impactful']}
+                            />
+                        </h1>
+                        <div className="hero-actions">
+                            <a href="#work" className="btn">
+                                See the work <ArrowDown size={15} strokeWidth={2} aria-hidden="true" />
+                            </a>
+                            <div className="social-row">
+                                <a href={LINKS.resume} target="_blank" rel="noreferrer" className="social-btn">
+                                    <FileText size={17} strokeWidth={1.75} aria-hidden="true" /> Résumé
+                                </a>
+                                <a href={LINKS.github} target="_blank" rel="noreferrer" className="social-btn">
+                                    <Github size={17} strokeWidth={1.75} aria-hidden="true" /> GitHub
+                                </a>
+                                <a href={LINKS.linkedin} target="_blank" rel="noreferrer" className="social-btn">
+                                    <Linkedin size={17} strokeWidth={1.75} aria-hidden="true" /> LinkedIn
+                                </a>
+                                <a href={`mailto:${LINKS.email}`} className="social-btn">
+                                    <Mail size={17} strokeWidth={1.75} aria-hidden="true" /> Email
+                                </a>
+                            </div>
+                        </div>
+
+                        <div className={`toolkit${toolkitOpen ? ' open' : ''}`}>
+                            <button
+                                type="button"
+                                className="toolkit-bar"
+                                onClick={() => setToolkitOpen((v) => !v)}
+                                aria-expanded={toolkitOpen}
+                                aria-controls="toolkit-panel"
+                            >
+                                <span className="toolkit-head">
+                                    <span className="toolkit-label">Toolkit</span>
+                                    <span className="toolkit-langs">{languages.join('  ·  ')}</span>
+                                </span>
+                                <span className="toolkit-cta">
+                                    {toolkitOpen ? 'Less' : 'All skills'}
+                                    <ChevronDown className="toolkit-chev" size={14} strokeWidth={2} aria-hidden="true" />
+                                </span>
+                            </button>
+                            <div className="toolkit-panel" id="toolkit-panel">
+                                <div className="toolkit-panel-inner">
+                                    {otherSkills.map((group) => (
+                                        <div className="toolkit-row" key={group.label}>
+                                            <span className="toolkit-k">{group.label}</span>
+                                            <span className="toolkit-v">{group.items.join('  ·  ')}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="status-bar">
+                        <span><span className="status-dot" /> Open to software engineering roles</span>
+                        <span>Worcester, MA</span>
+                    </div>
+                </section>
+
+                <div className="container">
+
+                    {/* ============ PROJECTS ============ */}
+                    <section id="work" className="section">
+                        <Reveal><SectionHeader index="01" label="Projects" /></Reveal>
+                        <div className="proj-list">
+                            {projects.map((p, i) => (
+                                <Reveal key={p.id} delay={i * 40}><ProjectBlock project={p} index={i} /></Reveal>
                             ))}
                         </div>
-                    </div>
-                )}
-            </nav>
+                    </section>
 
-            <main className="relative z-10 mx-auto max-w-6xl px-5 sm:px-8">
-
-                {/* ============ HERO / ABOUT ============ */}
-                <section id="about" className="flex min-h-[78vh] flex-col justify-center py-20">
-                    <Reveal><p className="section-label mb-5">Software Engineer · Fintech</p></Reveal>
-                    <Reveal delay={80}>
-                        <h1 className="font-display text-5xl font-extrabold sm:text-6xl md:text-7xl lg:text-8xl">
-                            Anand Pagnis
-                        </h1>
-                    </Reveal>
-                    <Reveal delay={160}>
-                        <p className="mt-6 max-w-2xl text-lg leading-relaxed sm:text-xl" style={{ color: 'var(--text-muted)' }}>
-                            Computer Science student at <span style={{ color: 'var(--text)' }}>Worcester Polytechnic Institute</span> (B.S.,
-                            May 2026). I build full-stack platforms and AI/ML systems — from RAG retrieval pipelines to real-time
-                            simulators — with a strong interest in finance and financial technology.
-                        </p>
-                    </Reveal>
-                    <Reveal delay={240}>
-                        <div className="mt-9 flex flex-wrap items-center gap-3">
-                            <a href="#projects" className="btn-primary">View Projects <ArrowUpRight className="h-4 w-4" /></a>
-                            <a href={LINKS.resume} target="_blank" rel="noreferrer" className="btn-ghost"><FileText className="h-4 w-4" /> Resume</a>
-                            <a href={LINKS.github} target="_blank" rel="noreferrer" className="btn-ghost"><Github className="h-4 w-4" /> GitHub</a>
-                            <a href={LINKS.linkedin} target="_blank" rel="noreferrer" className="btn-ghost"><Linkedin className="h-4 w-4" /> LinkedIn</a>
-                            <a href={`mailto:${LINKS.email}`} className="btn-ghost"><Mail className="h-4 w-4" /> Email</a>
-                        </div>
-                    </Reveal>
-                </section>
-
-                {/* ============ SKILLS ============ */}
-                <section id="skills" className="scroll-mt-24 py-20">
-                    <Reveal>
-                        <p className="section-label mb-3">01 — Toolbox</p>
-                        <h2 className="mb-10 text-3xl font-bold sm:text-4xl md:text-5xl">Skills &amp; Technologies</h2>
-                    </Reveal>
-                    <div className="flex flex-col gap-8">
-                        {skillGroups.map((group, gi) => (
-                            <Reveal key={group.label} delay={gi * 60}>
-                                <div>
-                                    <p className="mb-3 font-mono text-sm" style={{ color: 'var(--text-muted)' }}>{group.label}</p>
-                                    <div className="flex flex-wrap gap-3">
-                                        {group.items.map((item) => (
-                                            <span key={item} className="tech-pill">
-                                                {ICONS[item] && <img src={ICONS[item]} alt="" />}
-                                                {item}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-                            </Reveal>
-                        ))}
-                    </div>
-                </section>
-
-                {/* ============ EXPERIENCE ============ */}
-                <section id="experience" className="scroll-mt-24 py-20">
-                    <Reveal>
-                        <p className="section-label mb-3">02 — Where I've Worked</p>
-                        <h2 className="mb-10 text-3xl font-bold sm:text-4xl md:text-5xl">Experience</h2>
-                    </Reveal>
-                    <div className="flex flex-col gap-5">
+                    {/* ============ EXPERIENCE ============ */}
+                    <section id="experience" className="section">
+                        <Reveal><SectionHeader index="02" label="Experience" /></Reveal>
                         {experience.map((e, i) => (
-                            <Reveal key={i} delay={i * 60}><EntryCard entry={e} /></Reveal>
+                            <Reveal key={i} delay={i * 60}><EntryRow entry={e} /></Reveal>
                         ))}
-                    </div>
-                </section>
 
-                {/* ============ LEADERSHIP ============ */}
-                <section id="leadership" className="scroll-mt-24 py-20">
-                    <Reveal>
-                        <p className="section-label mb-3">03 — Beyond the Code</p>
-                        <h2 className="mb-10 text-3xl font-bold sm:text-4xl md:text-5xl">Leadership</h2>
-                    </Reveal>
-                    <div className="flex flex-col gap-5">
+                        <Reveal><SubHeader label="Leadership" /></Reveal>
                         {leadership.map((e, i) => (
-                            <Reveal key={i} delay={i * 60}><EntryCard entry={e} /></Reveal>
+                            <Reveal key={i} delay={i * 60}><EntryRow entry={e} /></Reveal>
                         ))}
-                    </div>
-                </section>
 
-                {/* ============ PROJECTS ============ */}
-                <section id="projects" className="scroll-mt-24 py-20">
-                    <Reveal>
-                        <p className="section-label mb-3">04 — Selected Work</p>
-                        <h2 className="mb-12 text-3xl font-bold sm:text-4xl md:text-5xl">Projects</h2>
-                    </Reveal>
-                    <div className="flex flex-col gap-16 sm:gap-24">
-                        {projects.map((project, idx) => (
-                            <Reveal key={project.id}>
-                                <article className="grid items-center gap-8 lg:grid-cols-2 lg:gap-12">
-                                    <div className={idx % 2 === 1 ? 'lg:order-2' : ''}>
-                                        <a href={project.repo} target="_blank" rel="noreferrer" className="media-link" aria-label={`${project.title} on GitHub`}>
-                                            <Media media={project.media} alt={project.title} />
-                                        </a>
-                                    </div>
-                                    <div className={idx % 2 === 1 ? 'lg:order-1' : ''}>
-                                        {project.tag && (
-                                            <span className="tech-pill mb-4" style={{ color: 'var(--accent)' }}>{project.tag}</span>
-                                        )}
-                                        <h3 className="text-2xl font-bold sm:text-3xl">
-                                            <a href={project.repo} target="_blank" rel="noreferrer" className="project-title-link">
-                                                {project.title}
-                                            </a>
-                                        </h3>
-                                        <p className="mt-1 font-mono text-sm" style={{ color: 'var(--text-muted)' }}>
-                                            {project.role ? `${project.role} · ` : ''}{project.period}
-                                            {project.location ? ` · ${project.location}` : ''}
-                                        </p>
-                                        <ul className="mt-5 flex flex-col gap-3">
-                                            {project.points.map((point, i) => (
-                                                <li key={i} className="flex items-start gap-3 leading-relaxed" style={{ color: 'var(--text-muted)' }}>
-                                                    <span className="bullet-dot" />
-                                                    <span>{point}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                        <div className="mt-6 flex flex-wrap gap-2.5">
-                                            {project.tech.map((t) => (
-                                                <span key={t} className="tech-pill">
-                                                    {ICONS[t] && <img src={ICONS[t]} alt="" />}
-                                                    {t}
-                                                </span>
-                                            ))}
-                                        </div>
-                                        <div className="mt-6">
-                                            <a href={project.repo} target="_blank" rel="noreferrer" className="btn-ghost">
-                                                <Github className="h-4 w-4" /> View Repository <ArrowUpRight className="h-4 w-4" />
-                                            </a>
-                                        </div>
-                                    </div>
-                                </article>
-                            </Reveal>
-                        ))}
-                    </div>
-                </section>
-
-                {/* ============ EDUCATION ============ */}
-                <section id="education" className="scroll-mt-24 py-20">
-                    <Reveal>
-                        <p className="section-label mb-3">05 — Background</p>
-                        <h2 className="mb-10 text-3xl font-bold sm:text-4xl md:text-5xl">Education</h2>
-                    </Reveal>
-                    <Reveal delay={60}>
-                        <div className="card p-6 sm:p-8">
-                            <div className="flex flex-col justify-between gap-1 sm:flex-row sm:items-baseline">
-                                <h3 className="text-xl font-bold sm:text-2xl">Worcester Polytechnic Institute</h3>
-                                <span className="font-mono text-sm" style={{ color: 'var(--text-muted)' }}>May 2026</span>
+                        <Reveal><SubHeader label="Education" /></Reveal>
+                        <Reveal delay={60}>
+                            <div className="row">
+                                <div className="row-meta">
+                                    <span>May 2026</span>
+                                    <span>Worcester, MA</span>
+                                </div>
+                                <div className="row-body">
+                                    <h4 className="row-title">Worcester Polytechnic Institute</h4>
+                                    <p className="row-org">Bachelor of Science in Computer Science</p>
+                                    <p className="row-org">Fintech Minor</p>
+                                </div>
                             </div>
-                            <p className="mt-1 font-medium" style={{ color: 'var(--accent)' }}>Bachelor of Science in Computer Science</p>
-                            <p className="mt-1 flex items-center gap-1.5 text-sm" style={{ color: 'var(--text-muted)' }}>
-                                <MapPin className="h-3.5 w-3.5" /> Worcester, MA
-                            </p>
-                        </div>
-                    </Reveal>
-                </section>
+                        </Reveal>
+                    </section>
 
-                {/* ============ FOOTER ============ */}
-                <footer className="border-t py-12 text-center" style={{ borderColor: 'var(--border)' }}>
-                    <p className="mb-6 text-lg" style={{ color: 'var(--text-muted)' }}>Let's build something.</p>
-                    <div className="flex flex-wrap justify-center gap-3">
-                        <a href={`mailto:${LINKS.email}`} className="btn-ghost"><Mail className="h-4 w-4" /> Email</a>
-                        <a href={LINKS.github} target="_blank" rel="noreferrer" className="btn-ghost"><Github className="h-4 w-4" /> GitHub</a>
-                        <a href={LINKS.linkedin} target="_blank" rel="noreferrer" className="btn-ghost"><Linkedin className="h-4 w-4" /> LinkedIn</a>
-                        <a href={LINKS.resume} target="_blank" rel="noreferrer" className="btn-ghost"><FileText className="h-4 w-4" /> Resume</a>
-                    </div>
-                    <p className="mt-8 font-mono text-xs" style={{ color: 'var(--text-muted)' }}>
-                        © {new Date().getFullYear()} Anand Pagnis · {LINKS.email}
-                    </p>
-                </footer>
+                    {/* ============ CONTACT ============ */}
+                    <footer id="contact" className="footer">
+                        <Reveal>
+                            <p className="footer-kicker">Contact · Open to software engineering roles</p>
+                            <h2 className="footer-cta">
+                                Let&rsquo;s make something <em>impactful</em><span className="footer-dot">.</span>
+                            </h2>
+                            <a href={`mailto:${LINKS.email}`} className="footer-mail">
+                                {LINKS.email}
+                                <ArrowUpRight size={22} strokeWidth={1.75} aria-hidden="true" />
+                            </a>
+                            <div className="link-row footer-links">
+                                <a href={LINKS.github} target="_blank" rel="noreferrer" className="tlink"><Github size={14} strokeWidth={1.75} /> GitHub</a>
+                                <a href={LINKS.linkedin} target="_blank" rel="noreferrer" className="tlink"><Linkedin size={14} strokeWidth={1.75} /> LinkedIn</a>
+                                <a href={LINKS.resume} target="_blank" rel="noreferrer" className="tlink"><FileText size={14} strokeWidth={1.75} /> Résumé</a>
+                            </div>
+                            <div className="footer-divider" aria-hidden="true">
+                                <span className="divider-line" /><MiniSun /><span className="divider-line" />
+                            </div>
+                            <div className="footer-base">
+                                <p className="colophon">© {new Date().getFullYear()} Anand Pagnis </p>
+                                {/*<p className="colophon">Fraunces · IBM Plex Mono · React</p>*/}
+                                <a href="#top" className="top-link">Back to top ↑</a>
+                            </div>
+                        </Reveal>
+                    </footer>
+                </div>
             </main>
         </div>
     );
