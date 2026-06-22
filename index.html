@@ -2,11 +2,39 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Anand-Potfolio</title>
-    <script type="module" crossorigin src="/assets/index-DnQcE6SF.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-C9k3BgbN.css">
+    <title>Anand Pagnis — Software Engineer</title>
+    <meta
+      name="description"
+      content="Anand Pagnis — full-stack software engineer building AI/ML systems, fintech platforms, and real-time simulators. Served warm."
+    />
+    <meta name="theme-color" content="#171107" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23171107'/%3E%3Ccircle cx='16' cy='15' r='10' fill='%23ffb000'/%3E%3Crect x='4' y='18' width='24' height='1.6' fill='%23171107'/%3E%3Crect x='4' y='21.4' width='24' height='2.2' fill='%23171107'/%3E%3Crect x='4' y='25.4' width='24' height='3' fill='%23171107'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300..900;1,9..144,300..900&family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,600;1,400&display=swap"
+      rel="stylesheet"
+    />
+    <script>
+      /* Apply the saved theme before first paint to avoid a flash */
+      try {
+        var stored = localStorage.getItem('theme');
+        var theme = stored
+          ? stored
+          : window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'dark'
+            : 'light';
+        document.documentElement.classList.add(theme);
+      } catch (e) {
+        document.documentElement.classList.add('dark');
+      }
+    </script>
+    <script type="module" crossorigin src="/assets/index-DK-aJ4px.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-BOg2r0A6.css">
   </head>
   <body>
     <div id="root"></div>
