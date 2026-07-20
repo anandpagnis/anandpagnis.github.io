@@ -62,10 +62,12 @@ const LINKS = {
 };
 
 const skillGroups: { label: string; items: string[] }[] = [
-    { label: 'Backend & APIs', items: ['Python', 'REST APIs', 'FastAPI', 'Async Workflows', 'PostgreSQL', 'Docker', 'Microservices'] },
-    { label: 'AI & ML', items: ['TensorFlow', 'Feature Engineering', 'Model Evaluation', 'Backtesting', 'NLP', 'Recommender Systems', 'RAG Pipelines'] },
-    { label: 'Frontend', items: ['React', 'Streamlit', 'TypeScript', 'CSS'] },
-    { label: 'Languages', items: ['Python', 'TypeScript', 'C/C++', 'HTML', 'SQL'] },
+    { label: 'Backend & APIs', items: ['Python', 'FastAPI', 'REST APIs', 'Node.js', 'Express.js', 'PostgreSQL', 'MySQL', 'Prisma ORM', 'Docker', 'Microservices'] },
+    { label: 'AI & ML', items: ['RAG Pipelines', 'NLP', 'Hybrid Retrieval (BM25 + Dense)', 'Intent Classification', 'Reranking', 'LLMs (Ollama, Groq)', 'pgvector', 'TensorFlow', 'Model Evaluation'] },
+    { label: 'Frontend', items: ['React', 'TypeScript', 'Tailwind CSS', 'shadcn/ui', 'Radix UI', 'Three.js', 'Streamlit', 'Vite'] },
+    { label: 'Tools & Platforms', items: ['Git', 'AWS (EC2)', 'Supabase', 'Auth0', 'Railway', 'Jira', 'Agile/Scrum', 'Plotly', 'pandas', 'Tesseract OCR'] },
+    { label: 'Agentic AI', items: ['Claude (Anthropic)', 'Cursor', 'GitHub Copilot'] },
+    { label: 'Languages', items: ['Python', 'TypeScript', 'C/C++', 'SQL', 'HTML', 'Bash'] },
 ];
 
 /* languages shown by default; the rest live behind the "All skills" toggle */
@@ -73,6 +75,28 @@ const languages = skillGroups.find((g) => g.label === 'Languages')?.items ?? [];
 const otherSkills = skillGroups.filter((g) => g.label !== 'Languages');
 
 const experience: Entry[] = [
+    {
+        title: 'Co-Founder',
+        org: 'SquatchScout',
+        period: 'Apr 2026 – Jul 2026',
+        location: 'Remote',
+        points: [
+            'Built a full-stack, two-sided local-services marketplace in Next.js 16, React 19, TypeScript, and Supabase — with three-tier RBAC enforced across edge middleware, server-side guards, and database RLS policies.',
+            'Designed a 25-table PostgreSQL schema across 10 migrations (bookings, reviews, messaging, payments, availability) with Haversine distance queries, custom triggers, and a DB-level double-booking guard.',
+            'Shipped real-time slot picking, a Stripe-ready escrow payment abstraction, Supabase Realtime chat, and a GitHub Actions CI pipeline spinning up local Supabase in Docker to run RLS, checkout, and auth smoke suites on every PR.',
+        ],
+    },
+    {
+        title: 'Co-Founder',
+        org: 'Second Brain',
+        period: 'Dec 2025 – Apr 2026',
+        location: 'Remote',
+        points: [
+            'Co-founded a local-first knowledge-retrieval system: a browser extension that captures articles, chunks them semantically, and embeds them with BGE dense vectors in PostgreSQL + pgvector.',
+            'Implemented a 10-stage hybrid retrieval pipeline — BM25, pgvector ANN, intent classification, cross-encoder reranking, and diversity filtering — at sub-500 ms CPU latency, plus a Groq-powered (Llama 3.1) concept-graph layer.',
+            'Designed a 9-table PostgreSQL schema and deployed on Railway with Docker, Supabase JWT auth, and an LRU query cache.',
+        ],
+    },
     {
         title: 'Software Engineer — Frontend Developer',
         org: 'Buffeat',
@@ -157,8 +181,40 @@ const projects: Project[] = [
         tag: 'Quant · Automation',
         media: { kind: 'image', src: portvis , label: 'Trading dashboard screenshot' },
         summary: 'A Python trading engine with a moving-average strategy and automated Investopedia execution, paired with a Streamlit + Plotly dashboard across the S&P 500.',
-        tech: ['Python', 'yfinance', 'Streamlit', 'Plotly', 'pandas', 'NumPy'],
+        tech: ['Python', 'yfinance', 'Streamlit', 'Plotly', 'PyAutoGUI', 'Tesseract OCR'],
         repo: 'https://github.com/anandpagnis/Trading-Engine',
+    },
+    {
+        id: 6,
+        title: 'AudioVis',
+        role: 'Solo · In progress',
+        period: '2026 · Ongoing',
+        tag: 'Audio · WebGL',
+        media: { kind: 'video', label: 'AudioVis performance capture' },
+        summary: 'A browser-based audio-visual performance engine that analyzes a song’s structure — beats, phrases, drops, and mood — in real time, then performs a directed visual journey through GPU-raymarched shaders and particle systems. Runs as an OBS source, installation, or live VJ tool.',
+        tech: ['React', 'TypeScript', 'Three.js', 'GLSL', 'Web Audio API', 'Zustand'],
+        repo: LINKS.github,
+    },
+    {
+        id: 7,
+        title: 'Discrete Diffusion (D3PM)',
+        role: 'WPI Research',
+        period: '2025',
+        tag: 'Generative · Research',
+        media: { kind: 'image', label: 'D3PM palette samples' },
+        summary: 'A discrete denoising diffusion model (D3PM) generating class-conditional images over a hand-designed 128-color palette, alongside a continuous DDPM baseline and an image→ASCII data pipeline. Trained on GPU/SLURM with wandb + Weave tracking.',
+        tech: ['Python', 'PyTorch', 'Diffusion Models', 'U-Net', 'CUDA', 'wandb'],
+        repo: LINKS.github,
+    },
+    {
+        id: 8,
+        title: 'Blog-Format Social Network',
+        period: '2024',
+        tag: 'Full-Stack · Auth',
+        media: { kind: 'image', label: 'Blog social network' },
+        summary: 'A full-stack CRUD blog-style social network with a TypeScript frontend and a Node.js / Express REST API backed by MySQL, with secure user management and authentication via Auth0.',
+        tech: ['TypeScript', 'Node.js', 'Express.js', 'MySQL', 'Auth0', 'REST'],
+        repo: LINKS.github,
     },
 ];
 
