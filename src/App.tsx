@@ -120,7 +120,7 @@ const leadership: Entry[] = [
         ],
     },
     {
-        title: 'Social Chair',
+        title: 'Activities Chair',
         org: 'Alpha Chi Rho',
         period: 'Aug 2024 – May 2025',
         location: 'Worcester, MA',
