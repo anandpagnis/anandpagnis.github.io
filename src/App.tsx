@@ -1,655 +1,295 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import type { MouseEvent, ReactNode } from 'react';
-import { flushSync } from 'react-dom';
-import {
-    Sun, Moon, Github, Linkedin, FileText, Mail,
-    ArrowUpRight, ArrowDown, ChevronDown, Menu, X, Image as ImageIcon, Video,
-} from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import type { MouseEvent, RefObject } from 'react';
 import './App.css';
-import adarc from './assets/adarc.png';
-import projdemo from './assets/projdemo-web.mp4';
-import secdash from './assets/secdash.png';
-import softengvis from './assets/softengvisual.png';
-import portvis from './assets/portvis.svg';
+import nightPhoto from './assets/night.jpg';
+import { Night } from './lib/night';
+import type { Tint } from './lib/night';
+import { startFluid } from './lib/fluid';
+import { NAME, EMAIL, LINKS, PROJECTS, WORK, LEADERSHIP, EDUCATION, SKILLS } from './content';
+import type { Project, Role } from './content';
 
-
-
-/* ==================================================================
-   ⬇  HOW TO ADD REAL MEDIA  ⬇
-   1. Drop your file in src/assets/ (e.g. adarc.png, sec-demo.mp4)
-   2. Import it here:           import adarc from './assets/adarc.png';
-   3. On the matching project below, replace:
-          media: { kind: 'image', label: '...' }
-      with:
-          media: { kind: 'image', src: adarc }
-   The <Media> component renders the real asset when `src` is set,
-   and the amber CRT placeholder when it isn't.
-   ================================================================== */
+const pad = (n: number) => String(n).padStart(2, '0');
+const isMobile = () => window.matchMedia('(max-width: 900px)').matches;
 
 /* ------------------------------------------------------------------ */
-/*  TYPES                                                              */
+/*  Copy email: the button that was pressed says Copied for a moment   */
 /* ------------------------------------------------------------------ */
-type Media = { kind: 'image' | 'video'; label?: string; src?: string };
-type Entry = {
-    title: string;
-    org: string;
-    period: string;
-    location?: string;
-    points: string[];
-};
-type Project = {
-    id: number;
-    title: string;
-    role?: string;
-    period: string;
-    tag: string;
-    media: Media;
-    summary: string;
-    tech: string[];
-    repo: string;
-};
+type CopySpot = 'nav' | 'end';
+function useCopyEmail() {
+    const [copied, setCopied] = useState<CopySpot | null>(null);
+    const timer = useRef(0);
+    useEffect(() => () => clearTimeout(timer.current), []);
+    const copy = async (spot: CopySpot, e?: MouseEvent) => {
+        e?.preventDefault();
+        try {
+            await navigator.clipboard.writeText(EMAIL);
+        } catch {
+            window.location.href = `mailto:${EMAIL}`;
+            return;
+        }
+        setCopied(spot);
+        clearTimeout(timer.current);
+        timer.current = window.setTimeout(() => setCopied(null), 1400);
+    };
+    return { copied, copy };
+}
 
-/* ------------------------------------------------------------------ */
-/*  DATA — straight from the resume                                    */
-/* ------------------------------------------------------------------ */
-const LINKS = {
-    site: 'https://anandpagnis.github.io',
-    github: 'https://github.com/anandpagnis',
-    linkedin: 'https://www.linkedin.com/in/anand-pagnis-96927a24a',
-    resume: `${import.meta.env.BASE_URL}AnandPagnisResume.pdf`,
-    email: 'anandpagnis101@gmail.com',
-    adarc : 'https://adarc.netlify.app',
-};
-
-const skillGroups: { label: string; items: string[] }[] = [
-    { label: 'Backend & APIs', items: ['Python', 'FastAPI', 'REST APIs', 'Node.js', 'Express.js', 'PostgreSQL', 'MySQL', 'Prisma ORM', 'Docker', 'Microservices'] },
-    { label: 'AI & ML', items: ['RAG Pipelines', 'NLP', 'Hybrid Retrieval (BM25 + Dense)', 'Intent Classification', 'Reranking', 'LLMs (Ollama, Groq)', 'pgvector', 'TensorFlow', 'Model Evaluation'] },
-    { label: 'Frontend', items: ['React', 'TypeScript', 'Tailwind CSS', 'shadcn/ui', 'Radix UI', 'Three.js', 'Streamlit', 'Vite'] },
-    { label: 'Tools & Platforms', items: ['Git', 'AWS (EC2)', 'Supabase', 'Auth0', 'Railway', 'Jira', 'Agile/Scrum', 'Plotly', 'pandas', 'Tesseract OCR'] },
-    { label: 'Agentic AI', items: ['Claude (Anthropic)', 'Cursor', 'GitHub Copilot'] },
-    { label: 'Languages', items: ['Python', 'TypeScript', 'C/C++', 'SQL', 'HTML', 'Bash'] },
-];
-
-/* languages shown by default; the rest live behind the "All skills" toggle */
-const languages = skillGroups.find((g) => g.label === 'Languages')?.items ?? [];
-const otherSkills = skillGroups.filter((g) => g.label !== 'Languages');
-
-const experience: Entry[] = [
-    {
-        title: 'Co-Founder',
-        org: 'SquatchScout',
-        period: 'Apr 2026 – Jul 2026',
-        location: 'Remote',
-        points: [
-            'Built a full-stack, two-sided local-services marketplace in Next.js, React, TypeScript, and Supabase, with three-tier role-based access control enforced across middleware, server-side guards, and database policies.',
-            'Designed a 25-table PostgreSQL schema across 10 migrations covering bookings, reviews, messaging, payments, and availability, with distance-based search and a database-level guard preventing double bookings.',
-            'Delivered real-time scheduling, a payment abstraction, live chat, and a GitHub Actions CI pipeline validating access control, checkout, and authentication on every pull request.',
-        ],
-    },
-    {
-        title: 'Co-Founder',
-        org: 'Second Brain',
-        period: 'Dec 2025 – Apr 2026',
-        location: 'Remote',
-        points: [
-            'Co-founded a local-first knowledge-retrieval system: a browser extension that captures articles, chunks them semantically, and embeds them with BGE dense vectors in PostgreSQL + pgvector.',
-            'Implemented a 10-stage hybrid retrieval pipeline — BM25, pgvector ANN, intent classification, cross-encoder reranking, and diversity filtering — at sub-500 ms CPU latency, plus a Groq-powered (Llama 3.1) concept-graph layer.',
-            'Designed a 9-table PostgreSQL schema and deployed on Railway with Docker, Supabase JWT auth, and an LRU query cache.',
-        ],
-    },
-    {
-        title: 'Software Engineer — Frontend Developer',
-        org: 'Buffeat',
-        period: 'Sept 2025 – Nov 2025',
-        location: 'Remote',
-        points: [
-            'Built responsive React + TypeScript interfaces for Buffeat’s core platform and reusable component libraries, cutting feature development time by 20%.',
-            'Shipped features through Agile sprints — planning, stand-ups, and code reviews.',
-        ],
-    },
-];
-
-const leadership: Entry[] = [
-    {
-        title: 'President',
-        org: 'Investing Association',
-        period: 'Jan 2025 – Mar 2026',
-        location: 'Worcester, MA',
-        points: [
-            'Led a 250+ member club on a $10,000 budget and launched a six-figure student-led investment fund.',
-        ],
-    },
-    {
-        title: 'Activities Chair',
-        org: 'Alpha Chi Rho',
-        period: 'Aug 2024 – May 2025',
-        location: 'Worcester, MA',
-        points: [
-            'Led a 10-member committee to organize professional and social events for 100+ students, strengthening brotherhood connections on campus.',
-        ],
-    },
-];
-
-const projects: Project[] = [
-    {
-        id: 1,
-        title: 'ADArC',
-        role: 'Principal Software Engineer · Aug 2025 – May 2026',
-        period: '2025–26',
-        tag: 'Simulation · EDA',
-        media: { kind: 'image', src: adarc, label: 'ADArC simulator' },
-        summary: 'Expanded an Arduino circuit simulator by 25+ components — adding I²C, SPI, UART & RS485 sensor simulation with real-time SVG visualization and Arduino code generation.',
-        tech: ['TypeScript', 'Blazor', 'AVR8js', 'GraphSynth', 'SVG'],
-        repo: LINKS.adarc,
-    },
-    {
-        id: 2,
-        title: 'Offline Education Server',
-        role: 'Project Lead & System Administrator · Fundesteam × Ministry of Education',
-        period: '2024',
-        tag: 'Systems · Infra',
-        media: { kind: 'video', src: projdemo, label: 'Offline education server demo' },
-        summary: 'Built a low-power offline learning server for rural Panama with the Ministry of Education — 85% faster video loads through Docker and Bash-automated course uploads.',
-        tech: ['Docker', 'Bash', 'Linux'],
-        repo: LINKS.github,
-    },
-    {
-        id: 3,
-        title: 'SEC 10-K Research Terminal',
-        period: '2026',
-        tag: 'Fintech · RAG',
-        media: { kind: 'image', src: secdash ,label: 'Research terminal screenshot' },
-        summary: 'A full-stack SEC-filing research platform (FastAPI + React) with a hybrid BM25 + dense-vector RAG pipeline that cut top-3 retrieval error by 40%.',
-        tech: ['Python', 'FastAPI', 'React', 'TypeScript', 'RAG', 'BM25'],
-        repo: 'https://github.com/anandpagnis/sec-dashboard',
-    },
-    {
-        id: 4,
-        title: 'Hospital Navigation & Service App',
-        role: 'Project Manager & Frontend Developer · WPI × Brigham and Women’s Hospital',
-        period: '2024',
-        tag: 'Agile · Frontend',
-        media: { kind: 'image', src: softengvis, label: 'Hospital app screenshot' },
-        summary: 'Led a 9-member Agile team building a hospital navigation and service app, deployed on AWS EC2 with Docker, Prisma and PostgreSQL.',
-        tech: ['React', 'TypeScript', 'AWS EC2', 'Docker', 'Prisma', 'PostgreSQL'],
-        repo: LINKS.github,
-    },
-    {
-        id: 5,
-        title: 'Algorithmic Trading Engine',
-        period: '2024',
-        tag: 'Quant · Automation',
-        media: { kind: 'image', src: portvis , label: 'Trading dashboard screenshot' },
-        summary: 'A Python trading engine with a moving-average strategy and automated Investopedia execution, paired with a Streamlit + Plotly dashboard across the S&P 500.',
-        tech: ['Python', 'yfinance', 'Streamlit', 'Plotly', 'PyAutoGUI', 'Tesseract OCR'],
-        repo: 'https://github.com/anandpagnis/Trading-Engine',
-    },
-    {
-        id: 6,
-        title: 'AudioVis',
-        role: 'Solo · In progress',
-        period: '2026 · Ongoing',
-        tag: 'Audio · WebGL',
-        media: { kind: 'video', label: 'AudioVis performance capture' },
-        summary: 'A browser-based audio-visual performance engine that analyzes a song’s structure — beats, phrases, drops, and mood — in real time, then performs a directed visual journey through GPU-raymarched shaders and particle systems. Runs as an OBS source, installation, or live VJ tool.',
-        tech: ['React', 'TypeScript', 'Three.js', 'GLSL', 'Web Audio API', 'Zustand'],
-        repo: LINKS.github,
-    },
-];
-
-const NAV = [
-    { label: 'Projects', href: '#work', id: 'work' },
-    { label: 'Experience', href: '#experience', id: 'experience' },
-    { label: 'Contact', href: '#contact', id: 'contact' },
-];
-
-const SECTION_IDS = NAV.map((n) => n.id);
-
-/* ------------------------------------------------------------------ */
-/*  HOOKS                                                              */
-/* ------------------------------------------------------------------ */
-
-/* fade-up on scroll */
-const useReveal = () => {
-    const ref = useRef<HTMLDivElement>(null);
-    useEffect(() => {
-        const el = ref.current;
-        if (!el) return;
-        const obs = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('in');
-                    obs.unobserve(entry.target);
-                }
-            },
-            { threshold: 0.08 }
-        );
-        obs.observe(el);
-        return () => obs.disconnect();
-    }, []);
-    return ref;
-};
-
-const Reveal = ({ children, delay = 0 }: { children: ReactNode; delay?: number }) => {
-    const ref = useReveal();
-    return (
-        <div ref={ref} className="reveal" style={{ transitionDelay: `${delay}ms` }}>
-            {children}
-        </div>
-    );
-};
-
-/* thin reading-progress line under the header */
-const useScrollProgress = () => {
-    const [progress, setProgress] = useState(0);
-    useEffect(() => {
-        const onScroll = () => {
-            const doc = document.documentElement;
-            const max = doc.scrollHeight - doc.clientHeight;
-            setProgress(max > 0 ? doc.scrollTop / max : 0);
-        };
-        onScroll();
-        window.addEventListener('scroll', onScroll, { passive: true });
-        return () => window.removeEventListener('scroll', onScroll);
-    }, []);
-    return progress;
-};
-
-/* highlights the section currently in view */
-const useScrollSpy = (ids: readonly string[]) => {
-    const [active, setActive] = useState('');
-    useEffect(() => {
-        const obs = new IntersectionObserver(
-            (entries) => {
-                entries.forEach((entry) => {
-                    if (entry.isIntersecting) setActive(entry.target.id);
-                });
-            },
-            { rootMargin: '-30% 0px -60% 0px' }
-        );
-        ids.forEach((id) => {
-            const el = document.getElementById(id);
-            if (el) obs.observe(el);
-        });
-        return () => obs.disconnect();
-    }, [ids]);
-    return active;
-};
-
-/* ------------------------------------------------------------------ */
-/*  SMALL PIECES                                                       */
-/* ------------------------------------------------------------------ */
-
-/* word-by-word headline reveal */
-const WordReveal = ({ text, accentWords = [] }: { text: string; accentWords?: string[] }) => (
+const ExternalLinks = () => (
     <>
-        {text.split(' ').map((word, i) => (
-            <span key={i}>
-                <span className="w-clip">
-                    <span
-                        className={`w${accentWords.includes(word) ? ' w-accent' : ''}`}
-                        style={{ animationDelay: `${160 + i * 50}ms` }}
-                    >
-                        {word}
-                    </span>
-                </span>
-                {' '}
-            </span>
+        {LINKS.map(([label, href]) => (
+            <a key={label} className="ul" href={href} target="_blank" rel="noopener noreferrer">{label}</a>
         ))}
     </>
 );
 
-/* the 70s striped sun — pure CSS, sits behind the hero */
-// const RetroSun = () => (
-//     <div className="sun-wrap" aria-hidden="true">
-//         <div className="sun-glow" />
-//         <div className="sun" />
-//         <div className="horizon" />
-//     </div>
-// );
+const Arrow = () => (
+    <svg className="proj-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75"
+        strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M7 17 17 7M8 7h9v9" />
+    </svg>
+);
 
-/* real asset when `src` is set, amber placeholder when it isn't */
-const Media = ({ media, alt }: { media: Media; alt: string }) => {
-    if (media.src) {
-        return (
-            <div className="media-frame">
-                {media.kind === 'video' ? (
-                    <video src={media.src} controls loop autoPlay muted playsInline />
-                ) : (
-                    <img src={media.src} alt={alt} loading="lazy" decoding="async" />
-                )}
-            </div>
-        );
-    }
+const TechLine = ({ tech }: { tech: string[] }) => (
+    <p className="tech-line">
+        {tech.map((t, i) => (
+            <span key={t}>
+                {t}
+                {i < tech.length - 1 && <span className="tech-sep" aria-hidden="true"> ✦ </span>}
+            </span>
+        ))}
+    </p>
+);
+
+/* ------------------------------------------------------------------ */
+/*  The amber fluid, one fixed layer behind the whole page             */
+/* ------------------------------------------------------------------ */
+function Fluid() {
+    const host = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        /* a fresh canvas per mount, since a released WebGL context can't be reused */
+        const canvas = document.createElement('canvas');
+        canvas.className = 'fluid';
+        host.current!.append(canvas);
+        const stop = startFluid(canvas);
+        return () => { stop(); canvas.remove(); };
+    }, []);
+    return <div ref={host} aria-hidden="true" />;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Landing: the night photo in characters, the name written into it   */
+/* ------------------------------------------------------------------ */
+function Hero() {
+    const box = useRef<HTMLDivElement>(null);
+    const night = useRef<Night | null>(null);
+    const [tint, setTint] = useState<Tint>('amber');
+
+    useEffect(() => {
+        const n = new Night(box.current!, {
+            src: nightPhoto, tint: 'amber', bloom: 1, size: 7.5, radius: 95, lift: 2, fade: 0.24,
+            name: isMobile()
+                ? { text: 'Anand\nPagnis', x: 0.06, y: 0.17, width: 0.82 }
+                : { text: NAME, x: 0.07, y: 0.22, width: 0.56 },
+        });
+        night.current = n;
+        return () => { n.destroy(); night.current = null; };
+    }, []);
+
+    const pick = (t: Tint) => { setTint(t); night.current?.setTint(t); };
+
     return (
-        <div className="media-frame media-placeholder" role="img" aria-label={media.label ?? alt}>
-            {media.kind === 'video' ? <Video size={20} strokeWidth={1.5} /> : <ImageIcon size={20} strokeWidth={1.5} />}
-            <span className="media-label">{media.label ?? alt}</span>
-        </div>
-    );
-};
-
-const SectionHeader = ({ index, label }: { index: string; label: string }) => (
-    <div className="section-header">
-        <span className="section-index">{index}</span>
-        <h2 className="section-title">{label}</h2>
-        <span className="section-rule" aria-hidden="true" />
-    </div>
-);
-
-const SubHeader = ({ label }: { label: string }) => (
-    <div className="sub-header">
-        <span className="sub-tick" aria-hidden="true" />
-        <h3>{label}</h3>
-    </div>
-);
-
-/* ledger row: mono meta on the left, content on the right */
-const EntryRow = ({ entry }: { entry: Entry }) => (
-    <div className="row">
-        <div className="row-meta">
-            <span>{entry.period}</span>
-            {entry.location && <span>{entry.location}</span>}
-        </div>
-        <div className="row-body">
-            <h4 className="row-title">{entry.title}</h4>
-            <p className="row-org">{entry.org}</p>
-            <ul className="points">
-                {entry.points.map((p, i) => (
-                    <li key={i}>{p}</li>
-                ))}
-            </ul>
-        </div>
-    </div>
-);
-
-/* editorial project block — alternates media side on desktop */
-const ProjectBlock = ({ project, index }: { project: Project; index: number }) => (
-    <article className={`proj${index % 2 === 1 ? ' flip' : ''}`}>
-        <div className="proj-info">
-            <div className="proj-meta">
-                <span className="proj-num" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
-                <span className="proj-tag">{project.tag}</span>
-                <span className="proj-period">{project.period}</span>
+        <header className="hero live" id="top">
+            <h1 className="sr">Anand Pagnis, software engineer</h1>
+            <div className="night" ref={box} />
+            <div className="band" aria-hidden="true" />
+            <div className="tint" role="group" aria-label="Photo colour">
+                <span className="k">Photo</span>
+                <button className="ul" type="button" aria-pressed={tint === 'amber'} onClick={() => pick('amber')}>Amber</button>
+                <button className="ul" type="button" aria-pressed={tint === 'original'} onClick={() => pick('original')}>Original</button>
             </div>
-            <h3 className="proj-title">
-                <a href={project.repo} target="_blank" rel="noreferrer">
-                    {project.title}
-                    <ArrowUpRight className="proj-arrow" size={26} strokeWidth={1.75} aria-hidden="true" />
-                </a>
-            </h3>
-            {project.role && <p className="proj-role">{project.role}</p>}
-            <p className="proj-summary">{project.summary}</p>
-            <p className="tech-line">
-                {project.tech.map((t, i) => (
-                    <span key={t}>
-                        {t}
-                        {i < project.tech.length - 1 && <span className="tech-sep" aria-hidden="true"> ✦ </span>}
-                    </span>
-                ))}
+        </header>
+    );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Projects: tall names, one line solid and the next outlined         */
+/* ------------------------------------------------------------------ */
+const ProjectBlock = ({ p, i }: { p: Project; i: number }) => (
+    <article className={`proj${i % 2 ? ' flip' : ''}`} id={`p${i + 1}`}>
+        <header className="proj-head">
+            <p className="proj-meta">
+                <span className="proj-num">{pad(i + 1)}</span>
+                <span className="proj-tag">{p.tag}</span>
+                <span className="proj-period">{p.period}</span>
             </p>
+            <h2 className="proj-title">
+                <a href={p.url} target="_blank" rel="noopener noreferrer" aria-label={p.title}>
+                    {p.lines.map((line, k) => (
+                        <span key={line} className={`line ${k % 2 ? 'hollow' : 'solid'}`}>
+                            {line}
+                            {k === p.lines.length - 1 && <Arrow />}
+                        </span>
+                    ))}
+                </a>
+            </h2>
+        </header>
+        <div className="proj-info">
+            {p.role && <p className="proj-role">{p.role}</p>}
+            <p className="proj-summary">{p.summary}</p>
+            <TechLine tech={p.tech} />
         </div>
-        <a
-            href={project.repo}
-            target="_blank"
-            rel="noreferrer"
-            aria-label={`${project.title} on GitHub`}
-            className="proj-media"
-        >
-            <Media media={project.media} alt={project.title} />
+        <a className="proj-media" href={p.url} target="_blank" rel="noopener noreferrer" aria-label={p.title}>
+            <figure className="shot live">
+                {p.media.kind === 'video'
+                    ? <video src={p.media.src} muted loop playsInline autoPlay aria-label={p.title} />
+                    : <img src={p.media.src} width={p.media.w} height={p.media.h} alt={p.title} loading="lazy" />}
+            </figure>
         </a>
     </article>
 );
 
-/* mini striped-sun used as a footer divider ornament */
-const MiniSun = () => <span className="mini-sun" aria-hidden="true" />;
-
 /* ------------------------------------------------------------------ */
-/*  APP                                                                */
+/*  Experience                                                         */
 /* ------------------------------------------------------------------ */
-const App = () => {
-    const [isDarkMode, setIsDarkMode] = useState(() => {
-        if (typeof window === 'undefined') return true;
-        const stored = localStorage.getItem('theme');
-        if (stored) return stored === 'dark';
-        return window.matchMedia('(prefers-color-scheme: dark)').matches;
-    });
-    const [menuOpen, setMenuOpen] = useState(false);
-    const [toolkitOpen, setToolkitOpen] = useState(false);
-    const progress = useScrollProgress();
-    const activeSection = useScrollSpy(SECTION_IDS);
-    const heroRef = useRef<HTMLElement>(null);
-
-    /* layout effect so the class flip is captured by View Transitions */
-    useLayoutEffect(() => {
-        const root = document.documentElement;
-        root.classList.toggle('dark', isDarkMode);
-        root.classList.toggle('light', !isDarkMode);
-        localStorage.setItem('theme', isDarkMode ? 'dark' : 'light');
-    }, [isDarkMode]);
-
-    /* theme flip as a circular reveal from the toggle (graceful fallback) */
-    const toggleTheme = (e: MouseEvent<HTMLButtonElement>) => {
-        const next = !isDarkMode;
-        const doc = document as Document & {
-            startViewTransition?: (cb: () => void) => void;
-        };
-        const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        if (doc.startViewTransition && !reduceMotion) {
-            document.documentElement.style.setProperty('--vt-x', `${e.clientX}px`);
-            document.documentElement.style.setProperty('--vt-y', `${e.clientY}px`);
-            doc.startViewTransition(() => {
-                flushSync(() => setIsDarkMode(next));
-            });
-        } else {
-            setIsDarkMode(next);
-        }
-    };
-
-    /* warm cursor glow that follows the pointer through the hero */
-    const onHeroPointer = (e: MouseEvent<HTMLElement>) => {
-        const el = heroRef.current;
-        if (!el) return;
-        const rect = el.getBoundingClientRect();
-        el.style.setProperty('--mx', `${e.clientX - rect.left}px`);
-        el.style.setProperty('--my', `${e.clientY - rect.top}px`);
-    };
-
-    return (
-        <div className="page">
-            {/* ============ HEADER ============ */}
-            <header className="site-header">
-                <div className="header-inner">
-                    <a href="#top" className="wordmark">
-                        <span className="wm-sun" aria-hidden="true" />
-                        Anand&nbsp;Pagnis
-                    </a>
-
-                    <nav className="nav-desktop" aria-label="Sections">
-                        {NAV.map((n) => (
-                            <a key={n.href} href={n.href} className={`nav-link${activeSection === n.id ? ' active' : ''}`}>
-                                {/*<span className="nav-index">{String(i + 1).padStart(2, '0')}</span>*/}
-                                {n.label}
-                            </a>
-                        ))}
-                    </nav>
-
-                    <div className="header-actions">
-                        <button
-                            className="icon-btn"
-                            onClick={toggleTheme}
-                            aria-label={isDarkMode ? 'Switch to light theme' : 'Switch to dark theme'}
-                        >
-                            {isDarkMode ? <Sun size={17} strokeWidth={1.75} /> : <Moon size={17} strokeWidth={1.75} />}
-                        </button>
-                        <button
-                            className="icon-btn nav-toggle"
-                            onClick={() => setMenuOpen((v) => !v)}
-                            aria-label="Menu"
-                            aria-expanded={menuOpen}
-                        >
-                            {menuOpen ? <X size={19} strokeWidth={1.75} /> : <Menu size={19} strokeWidth={1.75} />}
-                        </button>
-                    </div>
-                </div>
-
-                {/* reading progress */}
-                <div className="progress" aria-hidden="true">
-                    <div className="progress-bar" style={{ transform: `scaleX(${progress})` }} />
-                </div>
-
-                {menuOpen && (
-                    <nav className="nav-mobile" aria-label="Sections">
-                        {NAV.map((n, i) => (
-                            <a key={n.href} href={n.href} onClick={() => setMenuOpen(false)} className="nav-link">
-                                <span className="nav-index">{String(i + 1).padStart(2, '0')}</span>
-                                {n.label}
-                            </a>
-                        ))}
-                    </nav>
-                )}
-            </header>
-
-            <main id="top">
-
-                {/* ============ HERO ============ */}
-                <section className="hero" ref={heroRef} onMouseMove={onHeroPointer}>
-                    {/*<RetroSun />*/}
-                    <div className="hero-veil" aria-hidden="true" />
-                    <div className="container hero-content">
-                        <p className="eyebrow">Software Engineer · Full-Stack &amp; Fintech</p>
-                        <h1 className="hero-title">
-                            <WordReveal
-                                text="I build impactful projects"
-                                accentWords={['impactful']}
-                            />
-                        </h1>
-                        <div className="hero-actions">
-                            <a href="#work" className="btn">
-                                See the work <ArrowDown size={15} strokeWidth={2} aria-hidden="true" />
-                            </a>
-                            <div className="social-row">
-                                <a href={LINKS.resume} target="_blank" rel="noreferrer" className="social-btn">
-                                    <FileText size={17} strokeWidth={1.75} aria-hidden="true" /> Résumé
-                                </a>
-                                <a href={LINKS.github} target="_blank" rel="noreferrer" className="social-btn">
-                                    <Github size={17} strokeWidth={1.75} aria-hidden="true" /> GitHub
-                                </a>
-                                <a href={LINKS.linkedin} target="_blank" rel="noreferrer" className="social-btn">
-                                    <Linkedin size={17} strokeWidth={1.75} aria-hidden="true" /> LinkedIn
-                                </a>
-                                <a href={`mailto:${LINKS.email}`} className="social-btn">
-                                    <Mail size={17} strokeWidth={1.75} aria-hidden="true" /> Email
-                                </a>
-                            </div>
-                        </div>
-
-                        <div className={`toolkit${toolkitOpen ? ' open' : ''}`}>
-                            <button
-                                type="button"
-                                className="toolkit-bar"
-                                onClick={() => setToolkitOpen((v) => !v)}
-                                aria-expanded={toolkitOpen}
-                                aria-controls="toolkit-panel"
-                            >
-                                <span className="toolkit-head">
-                                    <span className="toolkit-label">Toolkit</span>
-                                    <span className="toolkit-langs">{languages.join('  ·  ')}</span>
-                                </span>
-                                <span className="toolkit-cta">
-                                    {toolkitOpen ? 'Less' : 'All skills'}
-                                    <ChevronDown className="toolkit-chev" size={14} strokeWidth={2} aria-hidden="true" />
-                                </span>
-                            </button>
-                            <div className="toolkit-panel" id="toolkit-panel">
-                                <div className="toolkit-panel-inner">
-                                    {otherSkills.map((group) => (
-                                        <div className="toolkit-row" key={group.label}>
-                                            <span className="toolkit-k">{group.label}</span>
-                                            <span className="toolkit-v">{group.items.join('  ·  ')}</span>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="status-bar">
-                        <span><span className="status-dot" /> Open to software engineering roles</span>
-                        <span>Worcester, MA</span>
-                    </div>
-                </section>
-
-                <div className="container">
-
-                    {/* ============ PROJECTS ============ */}
-                    <section id="work" className="section">
-                        <Reveal><SectionHeader index="01" label="Projects" /></Reveal>
-                        <div className="proj-list">
-                            {projects.map((p, i) => (
-                                <Reveal key={p.id} delay={i * 40}><ProjectBlock project={p} index={i} /></Reveal>
-                            ))}
-                        </div>
-                    </section>
-
-                    {/* ============ EXPERIENCE ============ */}
-                    <section id="experience" className="section">
-                        <Reveal><SectionHeader index="02" label="Experience" /></Reveal>
-                        {experience.map((e, i) => (
-                            <Reveal key={i} delay={i * 60}><EntryRow entry={e} /></Reveal>
-                        ))}
-
-                        <Reveal><SubHeader label="Leadership" /></Reveal>
-                        {leadership.map((e, i) => (
-                            <Reveal key={i} delay={i * 60}><EntryRow entry={e} /></Reveal>
-                        ))}
-
-                        <Reveal><SubHeader label="Education" /></Reveal>
-                        <Reveal delay={60}>
-                            <div className="row">
-                                <div className="row-meta">
-                                    <span>May 2026</span>
-                                    <span>Worcester, MA</span>
-                                </div>
-                                <div className="row-body">
-                                    <h4 className="row-title">Worcester Polytechnic Institute</h4>
-                                    <p className="row-org">Bachelor of Science in Computer Science</p>
-                                    <p className="row-org">Fintech Minor</p>
-                                </div>
-                            </div>
-                        </Reveal>
-                    </section>
-
-                    {/* ============ CONTACT ============ */}
-                    <footer id="contact" className="footer">
-                        <Reveal>
-                            <p className="footer-kicker">Contact · Open to software engineering roles</p>
-                            <h2 className="footer-cta">
-                                Let&rsquo;s make something <em>impactful</em><span className="footer-dot">.</span>
-                            </h2>
-                            <a href={`mailto:${LINKS.email}`} className="footer-mail">
-                                {LINKS.email}
-                                <ArrowUpRight size={22} strokeWidth={1.75} aria-hidden="true" />
-                            </a>
-                            <div className="link-row footer-links">
-                                <a href={LINKS.github} target="_blank" rel="noreferrer" className="tlink"><Github size={14} strokeWidth={1.75} /> GitHub</a>
-                                <a href={LINKS.linkedin} target="_blank" rel="noreferrer" className="tlink"><Linkedin size={14} strokeWidth={1.75} /> LinkedIn</a>
-                                <a href={LINKS.resume} target="_blank" rel="noreferrer" className="tlink"><FileText size={14} strokeWidth={1.75} /> Résumé</a>
-                            </div>
-                            <div className="footer-divider" aria-hidden="true">
-                                <span className="divider-line" /><MiniSun /><span className="divider-line" />
-                            </div>
-                            <div className="footer-base">
-                                <p className="colophon">© {new Date().getFullYear()} Anand Pagnis </p>
-                                {/*<p className="colophon">Fraunces · IBM Plex Mono · React</p>*/}
-                                <a href="#top" className="top-link">Back to top ↑</a>
-                            </div>
-                        </Reveal>
-                    </footer>
-                </div>
-            </main>
+const RoleBlock = ({ r, className = '' }: { r: Role; className?: string }) => (
+    <article className={`job ${className}`}>
+        <div>
+            <p className="job-meta">
+                <span className="when">{r.when}</span>
+                <span className="role">{r.role}</span>
+                <span className="where">{r.where}</span>
+            </p>
+            <h3 className="job-name">{r.org}</h3>
+            {r.summary && <p className="job-line">{r.summary}</p>}
+            {r.tech && <TechLine tech={r.tech} />}
         </div>
-    );
-};
+        <ul className="job-points">
+            {r.points.map(t => <li key={t}>{t}</li>)}
+        </ul>
+    </article>
+);
 
-export default App;
+/* ------------------------------------------------------------------ */
+/*  Stack: point at a tool to see where it was used                    */
+/* ------------------------------------------------------------------ */
+const usedBy: Record<string, string[]> = {};
+[...PROJECTS.map(p => [p.title, p.tech] as const), ...WORK.filter(r => r.tech).map(r => [r.org, r.tech!] as const)]
+    .forEach(([name, tech]) => tech.forEach(t => (usedBy[t.toLowerCase()] ||= []).push(name)));
+
+function Stack() {
+    const [hover, setHover] = useState<{ row: number; tool: string } | null>(null);
+    return (
+        <section className="wrap skills" id="stack">
+            <h2 className="disp">Stack</h2>
+            {SKILLS.map(([label, items], row) => (
+                <div key={label} className={`stack-row${row % 2 ? ' hollow' : ''}`}>
+                    <p className="label">{label}</p>
+                    <p className="words">
+                        {items.map(t => {
+                            const used = usedBy[t.toLowerCase()];
+                            return used ? (
+                                <span key={t} className="word used-in"
+                                    onPointerEnter={() => setHover({ row, tool: t })}
+                                    onPointerLeave={() => setHover(null)}>{t}</span>
+                            ) : <span key={t} className="word">{t}</span>;
+                        })}
+                    </p>
+                    <p className="used" aria-live="polite">
+                        {hover?.row === row && <>Used in <b>{usedBy[hover.tool.toLowerCase()].join(' · ')}</b></>}
+                    </p>
+                </div>
+            ))}
+        </section>
+    );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Contact: an even grid of identical dots behind the address         */
+/* ------------------------------------------------------------------ */
+function Dots({ box }: { box: RefObject<HTMLElement> }) {
+    const ref = useRef<HTMLCanvasElement>(null);
+    useEffect(() => {
+        const cv = ref.current!, ctx = cv.getContext('2d')!, el = box.current!;
+        let timer = 0;
+        function build() {
+            const dpr = Math.min(devicePixelRatio || 1, 2), W = el.clientWidth, H = el.clientHeight;
+            cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+            const gap = W < 700 ? 14 : 18, r = 1.1 * dpr, edge = Math.min(120, H * 0.15);
+            const dots = document.createElement('canvas');
+            dots.width = cv.width; dots.height = cv.height;
+            const d = dots.getContext('2d')!;
+            for (let y = gap / 2; y < H; y += gap) {
+                /* every dot the same brightness, with a soft fade only at the top and bottom edges */
+                d.fillStyle = `rgba(255,170,90,${0.42 * Math.min(1, y / edge, (H - y) / edge)})`;
+                for (let x = gap / 2; x < W; x += gap) { d.beginPath(); d.arc(x * dpr, y * dpr, r, 0, 7); d.fill(); }
+            }
+            ctx.clearRect(0, 0, cv.width, cv.height);
+            ctx.filter = `blur(${8 * dpr}px)`; ctx.globalAlpha = 0.45; ctx.drawImage(dots, 0, 0);
+            ctx.filter = 'none'; ctx.globalAlpha = 1; ctx.drawImage(dots, 0, 0);
+        }
+        build();
+        const ro = new ResizeObserver(() => { clearTimeout(timer); timer = window.setTimeout(build, 150); });
+        ro.observe(el);
+        return () => { ro.disconnect(); clearTimeout(timer); };
+    }, [box]);
+    return <canvas className="dots" ref={ref} aria-hidden="true" />;
+}
+
+function Contact({ copied, copy }: ReturnType<typeof useCopyEmail>) {
+    const box = useRef<HTMLElement>(null);
+    return (
+        <section className="end" id="contact" ref={box}>
+            <Dots box={box} />
+            <div>
+                <h2 className="disp">Contact</h2>
+                <a className="addr mono ul" href={`mailto:${EMAIL}`} onClick={e => copy('end', e)}>{EMAIL}</a>
+                <div>
+                    <button className={`key${copied === 'end' ? ' hit' : ''}`} type="button" onClick={() => copy('end')}>
+                        {copied === 'end' ? 'Copied' : 'Copy email'}
+                    </button>
+                </div>
+                <p className="links"><ExternalLinks /></p>
+            </div>
+        </section>
+    );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Page                                                               */
+/* ------------------------------------------------------------------ */
+export default function App() {
+    const email = useCopyEmail();
+    return (
+        <>
+            <Fluid />
+            <nav className="nav" aria-label="Links">
+                <span />
+                <div className="mid"><ExternalLinks /></div>
+                <div className="side">
+                    <button className={`copy ul${email.copied === 'nav' ? ' hit' : ''}`} type="button" onClick={() => email.copy('nav')}>
+                        {email.copied === 'nav' ? 'Copied' : <><span className="long">Copy email</span><span className="short">Email</span></>}
+                    </button>
+                </div>
+            </nav>
+
+            <Hero />
+
+            <main className="wrap" id="work">
+                {PROJECTS.map((p, i) => <ProjectBlock key={p.title} p={p} i={i} />)}
+            </main>
+
+            <section className="wrap exp" id="experience">
+                <h2 className="disp">Experience</h2>
+                <div>{WORK.map(r => <RoleBlock key={r.org} r={r} />)}</div>
+                <p className="sub mono">Leadership</p>
+                <div>{LEADERSHIP.map(r => <RoleBlock key={r.org} r={r} className="lead" />)}</div>
+                <p className="sub mono">Education</p>
+                <div><RoleBlock r={EDUCATION} className="lead edu" /></div>
+            </section>
+
+            <Stack />
+            <Contact {...email} />
+            <footer>Anand Pagnis, 2026. The night at the top is a photo I took, redrawn in characters.</footer>
+        </>
+    );
+}
